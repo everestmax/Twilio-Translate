@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+     <Start>
+        <Stream url="wss://1812ce142529.ngrok.io/"></Stream>
+     </Start>
+     <Say>Thanks for calling!</Say>
+     <Pause length="40"/>
+</Response>
