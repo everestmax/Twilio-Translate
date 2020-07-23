@@ -1,16 +1,16 @@
 from flask import Flask, render_template
 from flask_sockets import Sockets
+from flask_sse import sse 
 
 from SpeechClientBridge import SpeechClientBridge
-from google.cloud.speech_v1 import enums
-from google.cloud.speech_v1 import types
+from google.cloud.speech import enums
+from google.cloud.speech import types
 
 import json
 import base64
 import os
-import time
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "C:/Users/Max/Python/Fraud Calls/My First Project-4e376941f80f.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key.json"
 HTTP_SERVER_PORT = 5000
 
 config = types.RecognitionConfig(
@@ -22,6 +22,9 @@ streaming_config = types.StreamingRecognitionConfig(
     interim_results=True)
 
 app = Flask(__name__)
+app.transcript = ''
+app.config["REDIS_URL"] = "redis://localhost:5000/twiml"
+app.register_blueprint(sse, url_prefix = '/stream')
 sockets = Sockets(app)
 
 @app.route('/home')
@@ -40,20 +43,18 @@ def on_transcription_response(response):
     result = response.results[0]
     if not result.alternatives:
         return
-
+    
     transcription = result.alternatives[0].transcript
+    sse.publish({transcription}, type = 'greeting')
+    #app.transcript = app.transcript + transcription
     print("Transcription: " + transcription)
 
 @sockets.route('/')
 def transcript(ws):
     print("WS connection opened")
-    start =time.time()
     bridge = SpeechClientBridge(
         streaming_config, 
-        on_transcription_response
-    )
-    end = time.time()
-    print(end-start)
+        on_transcription_response)
     
     while not ws.closed:
         message = ws.receive()
@@ -77,6 +78,7 @@ def transcript(ws):
     bridge.terminate()
     print("WS connection closed")
 
+
 if __name__ == '__main__':
     from gevent import pywsgi
     from geventwebsocket.handler import WebSocketHandler
@@ -84,4 +86,3 @@ if __name__ == '__main__':
     server = pywsgi.WSGIServer(('', HTTP_SERVER_PORT), app, handler_class=WebSocketHandler)
     print("Server listening on: http://localhost:" + str(HTTP_SERVER_PORT))
     server.serve_forever()
-
