@@ -23,8 +23,8 @@ streaming_config = types.StreamingRecognitionConfig(
 
 app = Flask(__name__)
 app.transcript = ''
-app.config["REDIS_URL"] = "redis://localhost:5000/twiml"
-app.register_blueprint(sse, url_prefix = '/stream')
+app.config["REDIS_URL"] = "redis://localhost:5000"
+app.register_blueprint(sse, url_prefix = '/twiml')
 sockets = Sockets(app)
 
 @app.route('/home')
